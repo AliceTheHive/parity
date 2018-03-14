@@ -444,9 +444,14 @@ impl libusb::Hotplug for EventHandler {
 #[test]
 fn smoke() {
 	use rustc_hex::FromHex;
-	let hidapi = Arc::new(Mutex::new(hidapi::HidApi::new().unwrap()));
-	let manager = Manager::new(hidapi.clone(), Arc::new(AtomicBool::new(false))).unwrap();
-	manager.update_devices().unwrap();
+	let hidapi = Arc::new(Mutex::new(hidapi::HidApi::new().expect("HidApi couldn't be instanced")));
+	let manager = match Manager::new(hidapi.clone(), Arc::new(AtomicBool::new(false))) {
+		Ok(m) => m,
+		Err(e) => panic!("ledger::Manager error: {:?}", e),
+	};
+
+	assert_eq!(try_connect_polling(manager.clone(), Duration::from_millis(500)), true);
+
 	for d in &*manager.devices.read() {
 		println!("Device: {:?}", d);
 	}
